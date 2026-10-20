@@ -1,0 +1,1121 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TTS AudioLab by Wayne Scicluna</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              400: '#818cf8',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+            },
+            surface: {
+              800: '#131722',
+              850: '#0f131c',
+              900: '#0a0d14',
+              950: '#06080d'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <!-- Puter.js SDK -->
+  <script src="https://js.puter.com/v2/"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    .font-mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.6);
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 9999px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: #475569;
+    }
+    .glass-card {
+      background: rgba(19, 23, 34, 0.75);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .glass-card-interactive {
+      background: rgba(26, 32, 48, 0.6);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      transition: all 0.2s ease-in-out;
+    }
+    .glass-card-interactive:hover {
+      border-color: rgba(99, 102, 241, 0.4);
+      background: rgba(30, 37, 56, 0.85);
+    }
+    .glow-accent {
+      box-shadow: 0 0 35px -8px rgba(99, 102, 241, 0.35);
+    }
+  </style>
+</head>
+<body class="bg-surface-950 text-slate-100 min-h-screen flex flex-col antialiased selection:bg-brand-500 selection:text-white relative overflow-x-hidden">
+
+  <!-- Ambient Glow Backdrop -->
+  <div class="fixed top-0 left-1/4 w-96 h-96 bg-brand-600/10 rounded-full blur-3xl pointer-events-none -z-10"></div>
+  <div class="fixed bottom-10 right-10 w-80 h-80 bg-violet-600/10 rounded-full blur-3xl pointer-events-none -z-10"></div>
+
+  <!-- Header -->
+  <header class="border-b border-slate-800/80 bg-surface-900/80 backdrop-blur-md sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-violet-500 flex items-center justify-center text-white shadow-lg shadow-brand-500/25">
+          <i data-lucide="mic" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-base sm:text-lg font-bold tracking-tight text-white leading-tight">TTS AudioLab</h1>
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-brand-500/10 text-brand-400 border border-brand-500/20">MP3 STUDIO</span>
+          </div>
+          <p class="text-xs text-slate-400">by Wayne Scicluna &middot; High-Fidelity Text-to-Speech &amp; Instant MP3 Mastering</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <button id="historyToggleBtn" type="button" class="relative inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium bg-surface-800 hover:bg-slate-800 border border-slate-700 text-slate-300 hover:text-white transition">
+          <i data-lucide="history" class="w-3.5 h-3.5 text-brand-400"></i>
+          <span>Library</span>
+          <span id="historyBadge" class="hidden px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-brand-600 text-white leading-none">0</span>
+        </button>
+
+        <span class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+          Puter.js Live
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8 flex flex-col gap-6">
+
+    <!-- Top Workspace: Text Editor & Settings Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      
+      <!-- Text Area Panel (7 cols on desktop) -->
+      <section class="lg:col-span-7 flex flex-col gap-5">
+        <div class="glass-card rounded-2xl p-5 sm:p-6 shadow-xl flex flex-col gap-4">
+          
+          <div class="flex items-center justify-between flex-wrap gap-2">
+            <div class="flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-brand-500"></span>
+              <label for="textInput" class="text-sm font-semibold text-slate-200">
+                Speech Script
+              </label>
+            </div>
+            
+            <!-- Quick preset sample buttons -->
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <span class="text-[11px] text-slate-400 hidden sm:inline">Quick load:</span>
+              <button type="button" data-sample="intro" class="sample-pill text-[11px] bg-slate-800/90 hover:bg-brand-600 hover:text-white text-slate-300 px-2.5 py-1 rounded-md border border-slate-700/80 transition">Studio Intro</button>
+              <button type="button" data-sample="meditation" class="sample-pill text-[11px] bg-slate-800/90 hover:bg-brand-600 hover:text-white text-slate-300 px-2.5 py-1 rounded-md border border-slate-700/80 transition">Meditation</button>
+              <button type="button" data-sample="trailer" class="sample-pill text-[11px] bg-slate-800/90 hover:bg-brand-600 hover:text-white text-slate-300 px-2.5 py-1 rounded-md border border-slate-700/80 transition">Movie Trailer</button>
+            </div>
+          </div>
+
+          <!-- Script Textarea -->
+          <div class="relative">
+            <textarea 
+              id="textInput" 
+              rows="8" 
+              maxlength="3000"
+              placeholder="Type or paste narration script here (up to 3,000 characters)..." 
+              class="w-full min-h-[220px] p-4 text-slate-100 text-sm sm:text-base border border-slate-800 bg-surface-900/90 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition custom-scrollbar resize-y placeholder:text-slate-500 font-normal leading-relaxed"
+            >Welcome to TTS AudioLab by Wayne Scicluna. Generate studio-grade, downloadable MP3 audio instantly from raw text with precision vocal nuances, delivery control, and fast client-side rendering.</textarea>
+          </div>
+
+          <!-- Text meta bar -->
+          <div class="flex items-center justify-between text-xs text-slate-400 pt-1">
+            <div class="flex items-center gap-3">
+              <button id="clearBtn" type="button" class="text-slate-400 hover:text-rose-400 transition inline-flex items-center gap-1">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                Clear Text
+              </button>
+              <span class="text-slate-700">|</span>
+              <span id="readingTimeEstimate" class="text-slate-400">~12s spoken</span>
+            </div>
+            
+            <div class="flex items-center gap-2">
+              <span id="charCount" class="font-mono text-slate-400 font-medium">186 / 3,000</span>
+            </div>
+          </div>
+
+          <!-- Primary Generate Trigger -->
+          <div class="pt-2">
+            <button 
+              id="generateBtn" 
+              type="button" 
+              class="w-full py-3.5 px-6 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 active:from-brand-700 active:to-indigo-700 text-white font-semibold text-sm shadow-lg shadow-brand-500/30 transition transform hover:-translate-y-0.5 flex items-center justify-center gap-2.5 disabled:opacity-50 disabled:pointer-events-none"
+            >
+              <i data-lucide="sparkles" class="w-4 h-4"></i>
+              <span id="generateBtnText">Generate Master MP3</span>
+              <span id="generateSpinner" class="hidden animate-spin">
+                <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+              </span>
+            </button>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- Configuration Panel: Voices & Voice Instructions (5 cols) -->
+      <section class="lg:col-span-5 flex flex-col gap-5">
+        <div class="glass-card rounded-2xl p-5 sm:p-6 shadow-xl flex flex-col gap-5">
+          
+          <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+            <h2 class="text-sm font-semibold text-slate-200 flex items-center gap-2">
+              <i data-lucide="sliders-horizontal" class="w-4 h-4 text-brand-400"></i>
+              Acoustic &amp; Voice Config
+            </h2>
+            <span class="text-[11px] font-mono text-brand-400 bg-brand-500/10 px-2 py-0.5 rounded border border-brand-500/20">MP3 / 44.1kHz</span>
+          </div>
+
+          <!-- Voice Character Selector -->
+          <div>
+            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5" for="voiceSelect">
+              Voice Persona
+            </label>
+            <div class="relative">
+              <select id="voiceSelect" class="w-full text-sm appearance-none bg-surface-900 border border-slate-800 text-slate-100 rounded-xl px-3.5 py-2.5 pr-8 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none cursor-pointer">
+                <option value="alloy" selected>Alloy - Neutral, Balanced, Professional</option>
+                <option value="ash">Ash - Direct, Crisp, Modern</option>
+                <option value="coral">Coral - Warm, Friendly, Welcoming</option>
+                <option value="echo">Echo - Resonant, Smooth, Deep tone</option>
+                <option value="fable">Fable - Expressive, Storyteller, British flavor</option>
+                <option value="onyx">Onyx - Low-pitch, Authoritative, Cinematic</option>
+                <option value="nova">Nova - Bright, Natural, Youthful</option>
+                <option value="sage">Sage - Calm, Thoughtful, Articulate</option>
+                <option value="shimmer">Shimmer - Clear, Vibrant, Uplifting</option>
+              </select>
+              <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 absolute right-3 top-3 pointer-events-none"></i>
+            </div>
+          </div>
+
+          <!-- Model selection & Output Format -->
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5" for="modelSelect">
+                Synthesis Engine
+              </label>
+              <div class="relative">
+                <select id="modelSelect" class="w-full text-xs sm:text-sm appearance-none bg-surface-900 border border-slate-800 text-slate-100 rounded-xl px-3 py-2.5 pr-7 focus:ring-2 focus:ring-brand-500 outline-none cursor-pointer">
+                  <option value="gpt-4o-mini-tts" selected>gpt-4o-mini-tts (Fastest)</option>
+                  <option value="tts-1">tts-1 (Standard)</option>
+                  <option value="tts-1-hd">tts-1-hd (High-Def)</option>
+                </select>
+                <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-3 pointer-events-none"></i>
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5" for="exportFormat">
+                Master Format
+              </label>
+              <div class="relative">
+                <input id="exportFormat" type="text" value="MP3 (audio/mpeg)" disabled class="w-full text-xs sm:text-sm bg-surface-900/60 border border-slate-800 text-brand-400 rounded-xl px-3 py-2.5 font-mono cursor-not-allowed">
+              </div>
+            </div>
+          </div>
+
+          <!-- Voice Style Presets & Instructions -->
+          <div class="pt-1 flex flex-col gap-2">
+            <div class="flex items-center justify-between">
+              <label class="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                <i data-lucide="sparkle" class="w-3.5 h-3.5 text-brand-400"></i>
+                Voice Style / Tone Preset
+              </label>
+              <span id="presetIndicator" class="text-[10px] text-slate-500">Preset Active</span>
+            </div>
+
+            <div class="relative">
+              <select id="presetSelect" class="w-full text-sm appearance-none bg-surface-900 border border-slate-800 text-slate-100 rounded-xl px-3.5 py-2.5 pr-8 focus:ring-2 focus:ring-brand-500 outline-none cursor-pointer">
+                <option value="custom" selected>Custom Instruction (Editable Below - Blank by default)</option>
+                <option value="neutral">Neutral &amp; Balanced (Natural cadence)</option>
+                <option value="storyteller">Warm &amp; Friendly Storyteller</option>
+                <option value="announcer">Energetic &amp; Enthusiastic Announcer</option>
+                <option value="meditation">Deep &amp; Calm Meditation Guide</option>
+                <option value="news">Professional &amp; Clear News Anchor</option>
+                <option value="asmr">Whispering &amp; Gentle ASMR</option>
+                <option value="trailer">Dramatic Movie Trailer Narrator</option>
+                <option value="tech">Fast-Paced Tech Explainer</option>
+              </select>
+              <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 absolute right-3 top-3 pointer-events-none"></i>
+            </div>
+
+            <!-- Custom Editable Instructions Field -->
+            <div class="mt-1">
+              <div class="flex items-center justify-between mb-1">
+                <label for="customInstructions" class="text-xs text-slate-400">
+                  Instruction Prompt <span class="text-slate-500">(sent to TTS model)</span>:
+                </label>
+                <button id="resetInstructionBtn" type="button" class="text-[11px] text-brand-400 hover:text-brand-300">
+                  Reset
+                </button>
+              </div>
+              <textarea 
+                id="customInstructions" 
+                rows="3" 
+                placeholder="Leave blank for natural delivery, or specify pacing, emotion, accents, or vocal dynamics..." 
+                class="w-full text-xs sm:text-sm p-3 rounded-xl border border-slate-800 bg-surface-900 text-slate-200 placeholder:text-slate-600 focus:ring-2 focus:ring-brand-500 outline-none resize-none custom-scrollbar"
+              ></textarea>
+            </div>
+          </div>
+
+          <!-- Test Mode Switch -->
+          <div class="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs">
+            <label class="flex items-center gap-2.5 cursor-pointer text-slate-400 hover:text-slate-200 select-none">
+              <input type="checkbox" id="testModeCheck" class="w-4 h-4 rounded border-slate-700 bg-surface-900 text-brand-500 focus:ring-brand-500">
+              <span>Test Mode <span class="text-slate-500">(Dry run, 0 Puter credits)</span></span>
+            </label>
+            <span class="text-[11px] text-slate-500 font-mono">Puter.ai TTS v2</span>
+          </div>
+
+        </div>
+      </section>
+
+    </div>
+
+    <!-- Active Audio Player & Master Export Card -->
+    <section class="glass-card rounded-2xl p-5 sm:p-6 shadow-2xl glow-accent flex flex-col gap-5 border border-slate-700/60">
+      
+      <!-- Player Header Row -->
+      <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
+        <div class="flex items-center gap-3">
+          <div class="w-3 h-3 rounded-full bg-slate-700 flex items-center justify-center" id="statusDot">
+            <span class="w-1.5 h-1.5 rounded-full bg-slate-500"></span>
+          </div>
+          <div>
+            <div id="activeTrackTitle" class="text-sm font-semibold text-slate-100">No Master Track Loaded</div>
+            <div id="activeTrackMeta" class="text-xs text-slate-400 font-mono">Ready to synthesize script into MP3</div>
+          </div>
+        </div>
+
+        <!-- Custom Filename Field -->
+        <div class="flex items-center gap-2 flex-wrap">
+          <label for="exportFilename" class="text-xs text-slate-400 hidden sm:inline">Save as:</label>
+          <div class="relative flex items-center">
+            <input 
+              id="exportFilename" 
+              type="text" 
+              placeholder="narration-master" 
+              class="text-xs font-mono bg-surface-900 border border-slate-800 rounded-lg px-3 py-1.5 pr-12 text-slate-200 focus:ring-1 focus:ring-brand-500 outline-none w-48 sm:w-56"
+            />
+            <span class="absolute right-2.5 text-[11px] font-mono text-slate-500 pointer-events-none">.mp3</span>
+          </div>
+          
+          <!-- Instant Download MP3 Button -->
+          <button 
+            id="downloadMp3Btn" 
+            disabled 
+            class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 disabled:bg-slate-800 disabled:text-slate-600 disabled:cursor-not-allowed text-white text-xs sm:text-sm font-semibold transition shadow-md shadow-emerald-950"
+          >
+            <i data-lucide="download" class="w-4 h-4"></i>
+            <span>Download .MP3</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Waveform Canvas Visualizer -->
+      <div class="relative w-full h-24 bg-surface-950/80 rounded-xl overflow-hidden border border-slate-800/80 flex items-center justify-center">
+        <canvas id="waveformCanvas" class="w-full h-full block cursor-pointer"></canvas>
+        <div id="waveformOverlay" class="absolute inset-0 flex items-center justify-center pointer-events-none text-xs text-slate-500">
+          Interactive Audio Waveform Preview
+        </div>
+      </div>
+
+      <!-- Scrubber Slider -->
+      <div class="flex flex-col gap-1.5">
+        <div class="relative flex items-center">
+          <input 
+            type="range" 
+            id="seekSlider" 
+            min="0" 
+            max="100" 
+            value="0" 
+            step="0.1" 
+            disabled 
+            class="w-full accent-brand-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+          />
+        </div>
+        <div class="flex items-center justify-between text-xs font-mono text-slate-400">
+          <span id="currentTime">00:00</span>
+          <span id="durationTime">00:00</span>
+        </div>
+      </div>
+
+      <!-- Audio Control Center -->
+      <div class="flex flex-wrap items-center justify-between gap-4 pt-1">
+        
+        <!-- Left: Play/Pause/Stop/Skip -->
+        <div class="flex items-center gap-2">
+          <button 
+            id="skipBackBtn" 
+            disabled 
+            title="Rewind 5s"
+            class="w-8 h-8 rounded-lg bg-surface-900 border border-slate-800 text-slate-400 hover:text-white flex items-center justify-center transition disabled:opacity-30"
+          >
+            <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+          </button>
+
+          <button 
+            id="playPauseBtn" 
+            disabled 
+            class="w-11 h-11 rounded-xl bg-brand-600 hover:bg-brand-500 active:bg-brand-700 text-white flex items-center justify-center transition shadow-lg shadow-brand-600/30 disabled:opacity-30 disabled:cursor-not-allowed"
+          >
+            <i data-lucide="play" id="playIcon" class="w-5 h-5 ml-0.5"></i>
+          </button>
+
+          <button 
+            id="stopBtn" 
+            disabled 
+            title="Stop & Reset"
+            class="w-8 h-8 rounded-lg bg-surface-900 border border-slate-800 text-slate-400 hover:text-white flex items-center justify-center transition disabled:opacity-30"
+          >
+            <i data-lucide="square" class="w-3.5 h-3.5"></i>
+          </button>
+
+          <button 
+            id="skipForwardBtn" 
+            disabled 
+            title="Forward 5s"
+            class="w-8 h-8 rounded-lg bg-surface-900 border border-slate-800 text-slate-400 hover:text-white flex items-center justify-center transition disabled:opacity-30"
+          >
+            <i data-lucide="rotate-cw" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+
+        <!-- Middle: Speed multiplier buttons -->
+        <div class="flex items-center gap-1 bg-surface-900 p-1 rounded-xl border border-slate-800">
+          <button type="button" data-speed="0.75" class="speed-btn px-2.5 py-1 rounded-lg text-xs font-mono text-slate-400 hover:text-white transition">0.75x</button>
+          <button type="button" data-speed="1.0" class="speed-btn px-2.5 py-1 rounded-lg text-xs font-mono text-white bg-slate-800 font-semibold transition">1x</button>
+          <button type="button" data-speed="1.25" class="speed-btn px-2.5 py-1 rounded-lg text-xs font-mono text-slate-400 hover:text-white transition">1.25x</button>
+          <button type="button" data-speed="1.5" class="speed-btn px-2.5 py-1 rounded-lg text-xs font-mono text-slate-400 hover:text-white transition">1.5x</button>
+          <button type="button" data-speed="2.0" class="speed-btn px-2.5 py-1 rounded-lg text-xs font-mono text-slate-400 hover:text-white transition">2x</button>
+        </div>
+
+        <!-- Right: Volume & Loop -->
+        <div class="flex items-center gap-3">
+          <button id="loopBtn" title="Loop playback" class="text-slate-400 hover:text-white transition p-1.5 rounded-lg border border-transparent">
+            <i data-lucide="repeat" class="w-4 h-4"></i>
+          </button>
+
+          <div class="flex items-center gap-2">
+            <button id="muteBtn" class="text-slate-400 hover:text-white transition">
+              <i data-lucide="volume-2" id="volumeIcon" class="w-4 h-4"></i>
+            </button>
+            <input 
+              type="range" 
+              id="volumeSlider" 
+              min="0" 
+              max="1" 
+              step="0.05" 
+              value="1" 
+              class="w-20 accent-brand-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer"
+            />
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- Recent Session Library (Collapsible/Drawer) -->
+    <section id="historySection" class="glass-card rounded-2xl p-5 sm:p-6 shadow-xl flex flex-col gap-4">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div class="flex items-center gap-2.5">
+          <i data-lucide="layers" class="w-4 h-4 text-brand-400"></i>
+          <h3 class="text-sm font-semibold text-slate-200">Generated Track Library</h3>
+          <span class="text-xs text-slate-500">(Current Session)</span>
+        </div>
+        <button id="clearHistoryBtn" class="text-xs text-slate-400 hover:text-rose-400 transition">Clear All</button>
+      </div>
+
+      <!-- History List -->
+      <div id="historyList" class="flex flex-col gap-2.5 max-h-72 overflow-y-auto custom-scrollbar">
+        <div id="emptyHistoryMsg" class="py-8 text-center text-xs text-slate-500">
+          No generated audio clips yet. Synthesize speech above to build your track library.
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Toast Notification element -->
+  <div id="toast" class="fixed bottom-6 right-6 max-w-sm w-full bg-surface-900 text-white px-4 py-3.5 rounded-2xl shadow-2xl border border-slate-700/80 flex items-start gap-3 transform translate-y-28 opacity-0 transition-all duration-300 z-50 pointer-events-none">
+    <div id="toastIconBox" class="p-1 rounded-xl bg-brand-500/20 text-brand-400 shrink-0 mt-0.5">
+      <i data-lucide="info" id="toastIcon" class="w-4 h-4"></i>
+    </div>
+    <div class="flex-1 min-w-0">
+      <h4 id="toastTitle" class="text-xs font-bold text-slate-100 leading-tight">Notification</h4>
+      <p id="toastBody" class="text-xs text-slate-400 mt-0.5 break-words">Status details.</p>
+    </div>
+    <button id="toastCloseBtn" class="text-slate-400 hover:text-white transition pointer-events-auto">
+      <i data-lucide="x" class="w-3.5 h-3.5"></i>
+    </button>
+  </div>
+
+  <!-- JavaScript App Logic -->
+  <script>
+    // Initialize icons
+    lucide.createIcons();
+
+    // Voice Instruction Preset Dictionary
+    const PRESETS = {
+      custom: "",
+      neutral: "Speak in a calm, clear, neutral, and articulate manner with standard pacing.",
+      storyteller: "Deliver with a warm, inviting, and friendly tone like a seasoned fireside audiobook storyteller. Emphasize emotional color and natural pauses.",
+      announcer: "Deliver with high energy, excitement, punchy cadence, and enthusiastic radio broadcast inflection.",
+      meditation: "Speak slowly, deeply, and gently in a soothing, resonant cadence with relaxed pauses between sentences.",
+      news: "Maintain a professional, authoritative, objective, and crisp cadence reminiscent of an international news broadcast anchor.",
+      asmr: "Deliver in an intimate, soft, near-whispering tone with gentle vocal warmth and slow breath-like pacing.",
+      trailer: "Speak with deep, dramatic intensity, cinematic gravitas, suspenseful pacing, and resonant vocal weight.",
+      tech: "Deliver with a crisp, fast-paced, articulate, and modern tone suitable for a concise product or tech architectural walkthrough."
+    };
+
+    // Quick Sample Texts
+    const SAMPLES = {
+      intro: "Welcome to TTS AudioLab by Wayne Scicluna. Convert any text into pristine MP3 audio with instant client-side rendering and nuanced vocal modulation.",
+      meditation: "Take a deep breath in through your nose. Hold it for a moment... and gently exhale. Allow every tension in your shoulders to dissolve completely.",
+      trailer: "In a world bound by static algorithms, one runtime dared to execute the unthinkable. This summer... intelligence speaks for itself."
+    };
+
+    // State
+    let activeAudio = null;
+    let activeBlob = null;
+    let activeBlobUrl = null;
+    let isLooping = false;
+    let playbackRate = 1.0;
+    let historyTracks = [];
+    let animationFrameId = null;
+
+    // DOM bindings
+    const textInput = document.getElementById('textInput');
+    const charCount = document.getElementById('charCount');
+    const readingTimeEstimate = document.getElementById('readingTimeEstimate');
+    const clearBtn = document.getElementById('clearBtn');
+    const generateBtn = document.getElementById('generateBtn');
+    const generateBtnText = document.getElementById('generateBtnText');
+    const generateSpinner = document.getElementById('generateSpinner');
+    const voiceSelect = document.getElementById('voiceSelect');
+    const modelSelect = document.getElementById('modelSelect');
+    const presetSelect = document.getElementById('presetSelect');
+    const customInstructions = document.getElementById('customInstructions');
+    const resetInstructionBtn = document.getElementById('resetInstructionBtn');
+    const testModeCheck = document.getElementById('testModeCheck');
+
+    // Player Elements
+    const activeTrackTitle = document.getElementById('activeTrackTitle');
+    const activeTrackMeta = document.getElementById('activeTrackMeta');
+    const statusDot = document.getElementById('statusDot');
+    const exportFilename = document.getElementById('exportFilename');
+    const downloadMp3Btn = document.getElementById('downloadMp3Btn');
+    const playPauseBtn = document.getElementById('playPauseBtn');
+    const playIcon = document.getElementById('playIcon');
+    const stopBtn = document.getElementById('stopBtn');
+    const skipBackBtn = document.getElementById('skipBackBtn');
+    const skipForwardBtn = document.getElementById('skipForwardBtn');
+    const seekSlider = document.getElementById('seekSlider');
+    const currentTimeEl = document.getElementById('currentTime');
+    const durationTimeEl = document.getElementById('durationTime');
+    const speedButtons = document.querySelectorAll('.speed-btn');
+    const loopBtn = document.getElementById('loopBtn');
+    const muteBtn = document.getElementById('muteBtn');
+    const volumeSlider = document.getElementById('volumeSlider');
+    const volumeIcon = document.getElementById('volumeIcon');
+
+    // Visualizer Canvas
+    const canvas = document.getElementById('waveformCanvas');
+    const ctx = canvas.getContext('2d');
+    const waveformOverlay = document.getElementById('waveformOverlay');
+
+    // History & Drawer
+    const historySection = document.getElementById('historySection');
+    const historyList = document.getElementById('historyList');
+    const emptyHistoryMsg = document.getElementById('emptyHistoryMsg');
+    const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+    const historyBadge = document.getElementById('historyBadge');
+    const historyToggleBtn = document.getElementById('historyToggleBtn');
+
+    // Toast
+    const toast = document.getElementById('toast');
+    const toastTitle = document.getElementById('toastTitle');
+    const toastBody = document.getElementById('toastBody');
+    const toastIcon = document.getElementById('toastIcon');
+    const toastIconBox = document.getElementById('toastIconBox');
+    const toastCloseBtn = document.getElementById('toastCloseBtn');
+    let toastTimeout = null;
+
+    // Canvas Resize
+    function resizeCanvas() {
+      canvas.width = canvas.offsetWidth;
+      canvas.height = canvas.offsetHeight;
+      drawWaveform(false);
+    }
+    window.addEventListener('resize', resizeCanvas);
+    setTimeout(resizeCanvas, 150);
+
+    // Audio Visualizer Rendering
+    function drawWaveform(isPlaying = false) {
+      const w = canvas.width;
+      const h = canvas.height;
+      ctx.clearRect(0, 0, w, h);
+
+      const totalBars = Math.floor(w / 5);
+      const centerY = h / 2;
+
+      for (let i = 0; i < totalBars; i++) {
+        let barHeight;
+        if (isPlaying && activeAudio && !activeAudio.paused) {
+          const t = Date.now() / 150;
+          barHeight = (Math.sin(i * 0.25 + t) * 0.4 + 0.6) * (h * 0.75) + 4;
+        } else {
+          barHeight = (Math.sin(i * 0.15) * 0.35 + 0.5) * (h * 0.4) + 3;
+        }
+
+        const x = i * 5;
+        const y = centerY - barHeight / 2;
+
+        if (isPlaying && activeAudio && !activeAudio.paused) {
+          const progress = activeAudio.currentTime / (activeAudio.duration || 1);
+          if (x / w <= progress) {
+            ctx.fillStyle = '#6366f1'; // active indigo
+          } else {
+            ctx.fillStyle = '#312e81'; // unplayed trail
+          }
+        } else {
+          ctx.fillStyle = '#1e293b'; // dormant slate
+        }
+
+        ctx.beginPath();
+        ctx.roundRect(x, y, 2.5, barHeight, 1.5);
+        ctx.fill();
+      }
+
+      if (isPlaying && activeAudio && !activeAudio.paused) {
+        animationFrameId = requestAnimationFrame(() => drawWaveform(true));
+      }
+    }
+
+    // Interactive waveform click-to-seek
+    canvas.addEventListener('click', (e) => {
+      if (!activeAudio || !activeAudio.duration) return;
+      const rect = canvas.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      const ratio = Math.max(0, Math.min(1, clickX / rect.width));
+      activeAudio.currentTime = ratio * activeAudio.duration;
+    });
+
+    // Character counter & time estimate
+    function updateTextStats() {
+      const text = textInput.value;
+      const chars = text.length;
+      charCount.textContent = `${chars.toLocaleString()} / 3,000`;
+      
+      if (chars > 2800) {
+        charCount.classList.add('text-rose-400');
+      } else {
+        charCount.classList.remove('text-rose-400');
+      }
+
+      // Estimate ~150 words per minute
+      const wordCount = text.trim() ? text.trim().split(/\s+/).length : 0;
+      const seconds = Math.round((wordCount / 150) * 60);
+      readingTimeEstimate.textContent = wordCount > 0 ? `~${seconds}s estimated duration` : '~0s spoken';
+    }
+    textInput.addEventListener('input', updateTextStats);
+    updateTextStats();
+
+    // Preset selection logic
+    presetSelect.addEventListener('change', () => {
+      const selected = presetSelect.value;
+      if (selected === 'custom') {
+        customInstructions.value = "";
+        customInstructions.focus();
+      } else {
+        customInstructions.value = PRESETS[selected] || "";
+      }
+    });
+
+    resetInstructionBtn.addEventListener('click', () => {
+      presetSelect.value = 'custom';
+      customInstructions.value = '';
+    });
+
+    // Sample pills
+    document.querySelectorAll('.sample-pill').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const key = btn.dataset.sample;
+        if (SAMPLES[key]) {
+          textInput.value = SAMPLES[key];
+          updateTextStats();
+          // Match preset tone
+          if (key === 'meditation') {
+            presetSelect.value = 'meditation';
+            customInstructions.value = PRESETS.meditation;
+            voiceSelect.value = 'sage';
+          } else if (key === 'trailer') {
+            presetSelect.value = 'trailer';
+            customInstructions.value = PRESETS.trailer;
+            voiceSelect.value = 'onyx';
+          }
+        }
+      });
+    });
+
+    clearBtn.addEventListener('click', () => {
+      textInput.value = '';
+      updateTextStats();
+      textInput.focus();
+    });
+
+    // Time Formatter
+    function formatClock(seconds) {
+      if (isNaN(seconds) || seconds === Infinity) return "00:00";
+      const m = Math.floor(seconds / 60);
+      const s = Math.floor(seconds % 60);
+      return `${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
+    }
+
+    // Toast Notification helper
+    function showToast(title, body, type = 'info') {
+      clearTimeout(toastTimeout);
+      toastTitle.textContent = title;
+      toastBody.textContent = body;
+
+      if (type === 'error') {
+        toastIconBox.className = 'p-1 rounded-xl bg-rose-500/20 text-rose-400 shrink-0 mt-0.5';
+        toastIcon.setAttribute('data-lucide', 'alert-circle');
+      } else if (type === 'success') {
+        toastIconBox.className = 'p-1 rounded-xl bg-emerald-500/20 text-emerald-400 shrink-0 mt-0.5';
+        toastIcon.setAttribute('data-lucide', 'check-circle');
+      } else {
+        toastIconBox.className = 'p-1 rounded-xl bg-brand-500/20 text-brand-400 shrink-0 mt-0.5';
+        toastIcon.setAttribute('data-lucide', 'info');
+      }
+      lucide.createIcons();
+
+      toast.classList.remove('translate-y-28', 'opacity-0', 'pointer-events-none');
+      toastTimeout = setTimeout(() => {
+        toast.classList.add('translate-y-28', 'opacity-0', 'pointer-events-none');
+      }, 4200);
+    }
+
+    toastCloseBtn.addEventListener('click', () => {
+      toast.classList.add('translate-y-28', 'opacity-0', 'pointer-events-none');
+    });
+
+    // Audio Player State Hooks
+    function attachAudioEvents(audio) {
+      audio.playbackRate = playbackRate;
+      audio.loop = isLooping;
+
+      audio.addEventListener('loadedmetadata', () => {
+        seekSlider.max = audio.duration;
+        durationTimeEl.textContent = formatClock(audio.duration);
+        waveformOverlay.classList.add('hidden');
+      });
+
+      audio.addEventListener('timeupdate', () => {
+        seekSlider.value = audio.currentTime;
+        currentTimeEl.textContent = formatClock(audio.currentTime);
+      });
+
+      audio.addEventListener('play', () => {
+        playIcon.setAttribute('data-lucide', 'pause');
+        lucide.createIcons();
+        statusDot.className = 'w-3 h-3 rounded-full bg-emerald-500/20 flex items-center justify-center';
+        statusDot.firstElementChild.className = 'w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping';
+        drawWaveform(true);
+      });
+
+      audio.addEventListener('pause', () => {
+        playIcon.setAttribute('data-lucide', 'play');
+        lucide.createIcons();
+        statusDot.className = 'w-3 h-3 rounded-full bg-slate-700 flex items-center justify-center';
+        statusDot.firstElementChild.className = 'w-1.5 h-1.5 rounded-full bg-slate-400';
+        cancelAnimationFrame(animationFrameId);
+        drawWaveform(false);
+      });
+
+      audio.addEventListener('ended', () => {
+        if (!isLooping) {
+          playIcon.setAttribute('data-lucide', 'play');
+          lucide.createIcons();
+          seekSlider.value = 0;
+          cancelAnimationFrame(animationFrameId);
+          drawWaveform(false);
+        }
+      });
+
+      audio.addEventListener('error', (err) => {
+        console.error('Audio playback error', err);
+        showToast('Playback Error', 'Failed to decode audio track stream.', 'error');
+      });
+    }
+
+    // Play/Pause Action
+    playPauseBtn.addEventListener('click', () => {
+      if (!activeAudio) return;
+      if (activeAudio.paused) {
+        activeAudio.play().catch(e => console.error(e));
+      } else {
+        activeAudio.pause();
+      }
+    });
+
+    // Stop Action
+    stopBtn.addEventListener('click', () => {
+      if (!activeAudio) return;
+      activeAudio.pause();
+      activeAudio.currentTime = 0;
+      seekSlider.value = 0;
+      currentTimeEl.textContent = '00:00';
+    });
+
+    // Skip Back / Forward (5s)
+    skipBackBtn.addEventListener('click', () => {
+      if (!activeAudio) return;
+      activeAudio.currentTime = Math.max(0, activeAudio.currentTime - 5);
+    });
+
+    skipForwardBtn.addEventListener('click', () => {
+      if (!activeAudio) return;
+      activeAudio.currentTime = Math.min(activeAudio.duration || 0, activeAudio.currentTime + 5);
+    });
+
+    // Seek scrubber
+    seekSlider.addEventListener('input', (e) => {
+      if (!activeAudio) return;
+      activeAudio.currentTime = parseFloat(e.target.value);
+    });
+
+    // Speed Mult controls
+    speedButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const rate = parseFloat(btn.dataset.speed);
+        playbackRate = rate;
+        if (activeAudio) activeAudio.playbackRate = rate;
+
+        speedButtons.forEach(b => {
+          b.className = 'speed-btn px-2.5 py-1 rounded-lg text-xs font-mono text-slate-400 hover:text-white transition';
+        });
+        btn.className = 'speed-btn px-2.5 py-1 rounded-lg text-xs font-mono text-white bg-slate-800 font-semibold transition';
+      });
+    });
+
+    // Loop button
+    loopBtn.addEventListener('click', () => {
+      isLooping = !isLooping;
+      if (activeAudio) activeAudio.loop = isLooping;
+      if (isLooping) {
+        loopBtn.classList.add('text-brand-400', 'bg-brand-500/10', 'border-brand-500/30');
+        showToast('Loop Enabled', 'Track will automatically replay.');
+      } else {
+        loopBtn.classList.remove('text-brand-400', 'bg-brand-500/10', 'border-brand-500/30');
+      }
+    });
+
+    // Volume Slider & Mute
+    let storedVolume = 1.0;
+    volumeSlider.addEventListener('input', (e) => {
+      const vol = parseFloat(e.target.value);
+      if (activeAudio) activeAudio.volume = vol;
+      updateVolumeIcon(vol);
+    });
+
+    muteBtn.addEventListener('click', () => {
+      if (volumeSlider.value > 0) {
+        storedVolume = volumeSlider.value;
+        volumeSlider.value = 0;
+        if (activeAudio) activeAudio.volume = 0;
+        updateVolumeIcon(0);
+      } else {
+        volumeSlider.value = storedVolume || 1.0;
+        if (activeAudio) activeAudio.volume = volumeSlider.value;
+        updateVolumeIcon(volumeSlider.value);
+      }
+    });
+
+    function updateVolumeIcon(vol) {
+      if (vol === 0) {
+        volumeIcon.setAttribute('data-lucide', 'volume-x');
+      } else if (vol < 0.5) {
+        volumeIcon.setAttribute('data-lucide', 'volume-1');
+      } else {
+        volumeIcon.setAttribute('data-lucide', 'volume-2');
+      }
+      lucide.createIcons();
+    }
+
+    // Puter Text-to-Speech Main Pipeline
+    generateBtn.addEventListener('click', async () => {
+      const text = textInput.value.trim();
+      if (!text) {
+        showToast('Empty Script', 'Please enter text before generating audio.', 'error');
+        return;
+      }
+
+      if (text.length > 3000) {
+        showToast('Exceeded Limit', 'Text exceeds the 3,000 character maximum limit.', 'error');
+        return;
+      }
+
+      // Check if Puter SDK loaded
+      if (typeof puter === 'undefined' || !puter.ai) {
+        showToast('SDK Missing', 'Puter.js library is not ready or failed to load.', 'error');
+        return;
+      }
+
+      // Pause existing audio
+      if (activeAudio) {
+        activeAudio.pause();
+      }
+
+      // Lock UI
+      generateBtn.disabled = true;
+      generateBtnText.textContent = 'Synthesizing Audio...';
+      generateSpinner.classList.remove('hidden');
+
+      const voice = voiceSelect.value;
+      const model = modelSelect.value;
+      const instructions = customInstructions.value.trim();
+      const isTest = testModeCheck.checked;
+
+      // Build options according to puter.ai.txt2speech specifications
+      const options = {
+        voice: voice,
+        model: model,
+        response_format: 'mp3'
+      };
+
+      if (instructions) {
+        options.instructions = instructions;
+      }
+
+      if (isTest) {
+        options.test_mode = true;
+      }
+
+      try {
+        // Step 1: Request speech synthesis
+        const returnedAudio = await puter.ai.txt2speech(text, options);
+
+        if (!returnedAudio || !returnedAudio.src) {
+          throw new Error('Puter API returned invalid audio descriptor.');
+        }
+
+        // Step 2: Extract audio stream into binary Blob (MP3 format)
+        const response = await fetch(returnedAudio.src);
+        activeBlob = await response.blob();
+        activeBlobUrl = URL.createObjectURL(activeBlob);
+
+        // Step 3: Instantiate local playback object
+        activeAudio = new Audio(activeBlobUrl);
+        activeAudio.volume = parseFloat(volumeSlider.value);
+        attachAudioEvents(activeAudio);
+
+        // Enable UI Controls
+        playPauseBtn.disabled = false;
+        stopBtn.disabled = false;
+        skipBackBtn.disabled = false;
+        skipForwardBtn.disabled = false;
+        seekSlider.disabled = false;
+        downloadMp3Btn.disabled = false;
+
+        // Auto-generate a clean file name suggestion
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+        const slug = text.slice(0, 18).toLowerCase().replace(/[^a-z0-9]/g, '_');
+        exportFilename.value = `${slug}_${voice}_${timestamp}`;
+
+        const sizeKb = (activeBlob.size / 1024).toFixed(1);
+        activeTrackTitle.textContent = `${voice.toUpperCase()} - ${model}`;
+        activeTrackMeta.textContent = `${sizeKb} KB | MP3 audio/mpeg | Voice: ${voice}`;
+
+        // Auto play
+        await activeAudio.play();
+
+        // Push to local session library
+        addToHistory({
+          id: Date.now(),
+          title: text.slice(0, 45) + (text.length > 45 ? '...' : ''),
+          voice: voice,
+          model: model,
+          instructions: instructions || 'Standard Natural',
+          sizeKb: sizeKb,
+          blob: activeBlob,
+          blobUrl: activeBlobUrl,
+          created: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        });
+
+        showToast('MP3 Ready', `Master audio synthesized successfully with voice "${voice}".`, 'success');
+
+      } catch (err) {
+        console.error('Speech generation failure:', err);
+        showToast('Synthesis Failed', err.message || 'Error occurred while contacting Puter.js TTS.', 'error');
+      } finally {
+        generateBtn.disabled = false;
+        generateBtnText.textContent = 'Generate Master MP3';
+        generateSpinner.classList.add('hidden');
+      }
+    });
+
+    // 1-Click MP3 Download Implementation
+    function triggerDownload(blobUrl, customName) {
+      if (!blobUrl) return;
+      const cleanName = (customName && customName.trim()) 
+        ? customName.trim().replace(/\.mp3$/i, '') 
+        : `speech_${Date.now()}`;
+      
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = `${cleanName}.mp3`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      showToast('Downloading MP3', `Saved "${cleanName}.mp3" to disk.`, 'success');
+    }
+
+    downloadMp3Btn.addEventListener('click', () => {
+      if (!activeBlobUrl) {
+        showToast('No Track', 'Please generate an MP3 before downloading.', 'error');
+        return;
+      }
+      triggerDownload(activeBlobUrl, exportFilename.value);
+    });
+
+    // History & Session Track Library Management
+    function addToHistory(item) {
+      historyTracks.unshift(item);
+      renderHistory();
+    }
+
+    function renderHistory() {
+      historyBadge.textContent = historyTracks.length;
+      if (historyTracks.length > 0) {
+        historyBadge.classList.remove('hidden');
+        emptyHistoryMsg.classList.add('hidden');
+      } else {
+        historyBadge.classList.add('hidden');
+        emptyHistoryMsg.classList.remove('hidden');
+        historyList.innerHTML = '';
+        historyList.appendChild(emptyHistoryMsg);
+        return;
+      }
+
+      historyList.innerHTML = '';
+      historyTracks.forEach(track => {
+        const itemEl = document.createElement('div');
+        itemEl.className = 'glass-card-interactive rounded-xl p-3 flex items-center justify-between gap-3 text-xs';
+        itemEl.innerHTML = `
+          <div class="flex items-center gap-2.5 min-w-0">
+            <button class="track-play-btn w-8 h-8 rounded-lg bg-surface-900 border border-slate-700/80 hover:bg-brand-600 hover:text-white text-slate-300 flex items-center justify-center shrink-0 transition" title="Load into player">
+              <i data-lucide="play" class="w-3.5 h-3.5 ml-0.5"></i>
+            </button>
+            <div class="min-w-0">
+              <div class="font-medium text-slate-200 truncate">${track.title}</div>
+              <div class="text-[11px] text-slate-400 font-mono flex items-center gap-2">
+                <span>${track.voice.toUpperCase()}</span>
+                <span>•</span>
+                <span>${track.sizeKb} KB</span>
+                <span>•</span>
+                <span class="text-slate-500">${track.created}</span>
+              </div>
+            </div>
+          </div>
+          <div class="flex items-center gap-1.5 shrink-0">
+            <button class="track-dl-btn inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-surface-900 border border-slate-700 text-slate-300 hover:text-white hover:bg-slate-800 transition font-medium text-[11px]" title="Direct download MP3">
+              <i data-lucide="download" class="w-3.5 h-3.5 text-emerald-400"></i>
+              <span>MP3</span>
+            </button>
+            <button class="track-del-btn p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-slate-800/80 transition" title="Remove">
+              <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
+        `;
+
+        // History track play listener
+        itemEl.querySelector('.track-play-btn').addEventListener('click', () => {
+          if (activeAudio) activeAudio.pause();
+          activeBlob = track.blob;
+          activeBlobUrl = track.blobUrl;
+          activeAudio = new Audio(activeBlobUrl);
+          attachAudioEvents(activeAudio);
+
+          activeTrackTitle.textContent = `${track.voice.toUpperCase()} - Archive Clip`;
+          activeTrackMeta.textContent = `${track.sizeKb} KB | MP3 audio/mpeg`;
+          exportFilename.value = `archive_${track.voice}_${Date.now()}`;
+
+          playPauseBtn.disabled = false;
+          stopBtn.disabled = false;
+          skipBackBtn.disabled = false;
+          skipForwardBtn.disabled = false;
+          seekSlider.disabled = false;
+          downloadMp3Btn.disabled = false;
+
+          activeAudio.play();
+          showToast('Loaded Clip', `Now playing: "${track.title}"`);
+        });
+
+        // Direct item download
+        itemEl.querySelector('.track-dl-btn').addEventListener('click', () => {
+          triggerDownload(track.blobUrl, `voice_${track.voice}_${Date.now()}`);
+        });
+
+        // Delete item
+        itemEl.querySelector('.track-del-btn').addEventListener('click', () => {
+          historyTracks = historyTracks.filter(t => t.id !== track.id);
+          renderHistory();
+        });
+
+        historyList.appendChild(itemEl);
+      });
+
+      lucide.createIcons();
+    }
+
+    clearHistoryBtn.addEventListener('click', () => {
+      historyTracks = [];
+      renderHistory();
+    });
+
+    historyToggleBtn.addEventListener('click', () => {
+      historySection.scrollIntoView({ behavior: 'smooth' });
+    });
+  </script>
+</body>
+</html>
