@@ -167,17 +167,12 @@
             </div>
             
             <div class="flex items-center gap-2">
-              <button id="previewBtn" type="button" title="Free preview via Puter.js (first ~250 characters)" class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium bg-surface-800 hover:bg-brand-600 border border-slate-700 text-slate-300 hover:text-white transition disabled:opacity-50 disabled:pointer-events-none">
-                <i data-lucide="play-circle" id="previewIcon" class="w-3.5 h-3.5 text-brand-400"></i>
-                <span id="previewBtnText">Preview Audio</span>
-              </button>
-              <span class="text-slate-700">|</span>
               <span id="charCount" class="font-mono text-slate-400 font-medium">186 / 3,000</span>
             </div>
           </div>
 
           <!-- Primary Generate Trigger -->
-          <div class="pt-2">
+          <div class="pt-2 flex flex-col gap-2.5">
             <button 
               id="generateBtn" 
               type="button" 
@@ -191,6 +186,18 @@
                   <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
               </span>
+            </button>
+
+            <!-- Free Preview Trigger (Puter.js free TTS engine) -->
+            <button 
+              id="previewBtn" 
+              type="button" 
+              title="Free preview via Puter.js - reads the first ~250 characters"
+              class="w-full py-3.5 px-6 rounded-xl bg-surface-800 hover:bg-slate-800 border border-brand-500/40 hover:border-brand-400 text-slate-200 hover:text-white font-semibold text-sm shadow-lg shadow-black/30 transition transform hover:-translate-y-0.5 flex items-center justify-center gap-2.5 disabled:opacity-50 disabled:pointer-events-none"
+            >
+              <i data-lucide="play-circle" id="previewIcon" class="w-4 h-4 text-brand-400"></i>
+              <span id="previewBtnText">Preview Audio</span>
+              <span class="text-[10px] font-mono font-normal text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded">FREE</span>
             </button>
           </div>
 
@@ -511,6 +518,19 @@
       tech: "Deliver with a crisp, fast-paced, articulate, and modern tone suitable for a concise product or tech architectural walkthrough."
     };
 
+    // Free AWS Polly voices (Puter.js default TTS) mapped to the UI personas
+    const FREE_VOICE_MAP = {
+      alloy: 'Joanna',
+      ash: 'Matthew',
+      coral: 'Kimberly',
+      echo: 'Joey',
+      fable: 'Amy',
+      onyx: 'Stephen',
+      nova: 'Salli',
+      sage: 'Ruth',
+      shimmer: 'Ivy'
+    };
+
     // Quick Sample Texts
     const SAMPLES = {
       intro: "Welcome to TTS AudioLab by Wayne Scicluna. Convert any text into pristine MP3 audio with instant client-side rendering and nuanced vocal modulation.",
@@ -764,20 +784,27 @@
         snippet = snippet.slice(0, Math.max(snippet.lastIndexOf(' '), 120)).trim() + '…';
       }
 
-      const instructions = customInstructions.value.trim();
+      // Free engine only: Puter's default AWS Polly via the `standard` engine (no paid models)
       const options = {
-        voice: voiceSelect.value,
-        model: 'gpt-4o-mini-tts', // Puter's free-tier TTS engine
-        response_format: 'mp3'
+        provider: 'aws-polly',
+        voice: FREE_VOICE_MAP[voiceSelect.value] || 'Joanna',
+        engine: 'standard',
+        language: 'en-US'
       };
-      if (instructions) options.instructions = instructions;
 
       previewLoading = true;
       previewBtn.disabled = true;
       previewBtnText.textContent = 'Preparing Preview…';
 
       try {
-        const returnedAudio = await puter.ai.txt2speech(snippet, options);
+        let returnedAudio;
+        try {
+          returnedAudio = await puter.ai.txt2speech(snippet, options);
+        } catch (voiceErr) {
+          // Fall back to the guaranteed free default Polly voice
+          console.warn('Preferred preview voice failed, retrying with Joanna:', voiceErr);
+          returnedAudio = await puter.ai.txt2speech(snippet, { provider: 'aws-polly', voice: 'Joanna', engine: 'standard', language: 'en-US' });
+        }
         if (!returnedAudio || !returnedAudio.src) {
           throw new Error('Puter API returned invalid audio descriptor.');
         }
@@ -1029,7 +1056,9 @@
       const isTest = testModeCheck.checked;
 
       // Build options according to puter.ai.txt2speech specifications
+      // provider must be explicit, otherwise Puter defaults to AWS Polly and rejects OpenAI voice IDs
       const options = {
+        provider: 'openai',
         voice: voice,
         model: model,
         response_format: 'mp3'
