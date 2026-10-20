@@ -167,6 +167,11 @@
             </div>
             
             <div class="flex items-center gap-2">
+              <button id="previewBtn" type="button" title="Free preview via Puter.js (first ~250 characters)" class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium bg-surface-800 hover:bg-brand-600 border border-slate-700 text-slate-300 hover:text-white transition disabled:opacity-50 disabled:pointer-events-none">
+                <i data-lucide="play-circle" id="previewIcon" class="w-3.5 h-3.5 text-brand-400"></i>
+                <span id="previewBtnText">Preview Audio</span>
+              </button>
+              <span class="text-slate-700">|</span>
               <span id="charCount" class="font-mono text-slate-400 font-medium">186 / 3,000</span>
             </div>
           </div>
@@ -525,6 +530,9 @@
     // DOM bindings
     const textInput = document.getElementById('textInput');
     const charCount = document.getElementById('charCount');
+    const previewBtn = document.getElementById('previewBtn');
+    const previewBtnText = document.getElementById('previewBtnText');
+    const previewIcon = document.getElementById('previewIcon');
     const readingTimeEstimate = document.getElementById('readingTimeEstimate');
     const clearBtn = document.getElementById('clearBtn');
     const generateBtn = document.getElementById('generateBtn');
@@ -702,6 +710,109 @@
       textInput.focus();
     });
 
+    // ── Free Audio Preview (Puter.js, short snippet, no credits required) ──
+    let previewAudio = null;
+    let previewUrl = null;
+    let previewLoading = false;
+
+    function resetPreviewButton() {
+      previewBtnText.textContent = 'Preview Audio';
+      previewIcon.setAttribute('data-lucide', 'play-circle');
+      lucide.createIcons();
+    }
+
+    function stopPreview() {
+      if (previewAudio) {
+        previewAudio.pause();
+        previewAudio.currentTime = 0;
+        previewAudio = null;
+      }
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+        previewUrl = null;
+      }
+      resetPreviewButton();
+    }
+
+    previewBtn.addEventListener('click', async () => {
+      if (previewLoading) return;
+
+      // Toggle off if a preview is already playing
+      if (previewAudio && !previewAudio.paused) {
+        stopPreview();
+        return;
+      }
+
+      const fullText = textInput.value.trim();
+      if (!fullText) {
+        showToast('Empty Script', 'Add some text to preview before generating audio.', 'error');
+        return;
+      }
+
+      if (typeof puter === 'undefined' || !puter.ai) {
+        showToast('SDK Missing', 'Puter.js library is not ready or failed to load.', 'error');
+        return;
+      }
+
+      // Pause any master track so previews never overlap
+      if (activeAudio) activeAudio.pause();
+      stopPreview();
+
+      // Keep the preview short and free: first ~250 characters, cut at a word boundary
+      let snippet = fullText.slice(0, 250);
+      if (fullText.length > 250) {
+        snippet = snippet.slice(0, Math.max(snippet.lastIndexOf(' '), 120)).trim() + '…';
+      }
+
+      const instructions = customInstructions.value.trim();
+      const options = {
+        voice: voiceSelect.value,
+        model: 'gpt-4o-mini-tts', // Puter's free-tier TTS engine
+        response_format: 'mp3'
+      };
+      if (instructions) options.instructions = instructions;
+
+      previewLoading = true;
+      previewBtn.disabled = true;
+      previewBtnText.textContent = 'Preparing Preview…';
+
+      try {
+        const returnedAudio = await puter.ai.txt2speech(snippet, options);
+        if (!returnedAudio || !returnedAudio.src) {
+          throw new Error('Puter API returned invalid audio descriptor.');
+        }
+
+        const response = await fetch(returnedAudio.src);
+        const blob = await response.blob();
+        if (!blob.size) throw new Error('Preview stream was empty.');
+
+        previewUrl = URL.createObjectURL(blob);
+        previewAudio = new Audio(previewUrl);
+        previewAudio.volume = parseFloat(volumeSlider.value);
+
+        previewAudio.addEventListener('ended', () => {
+          resetPreviewButton();
+        });
+        previewAudio.addEventListener('error', () => {
+          showToast('Preview Error', 'Failed to decode the preview audio stream.', 'error');
+          stopPreview();
+        });
+
+        await previewAudio.play();
+
+        previewBtnText.textContent = 'Stop Preview';
+        previewIcon.setAttribute('data-lucide', 'square');
+        lucide.createIcons();
+      } catch (err) {
+        console.error('Preview failure:', err);
+        showToast('Preview Failed', err.message || 'Unable to generate a free preview right now.', 'error');
+        stopPreview();
+      } finally {
+        previewLoading = false;
+        previewBtn.disabled = false;
+      }
+    });
+
     // Time Formatter
     function formatClock(seconds) {
       if (isNaN(seconds) || seconds === Infinity) return "00:00";
@@ -791,6 +902,7 @@
     playPauseBtn.addEventListener('click', () => {
       if (!activeAudio) return;
       if (activeAudio.paused) {
+        stopPreview();
         activeAudio.play().catch(e => console.error(e));
       } else {
         activeAudio.pause();
@@ -904,6 +1016,7 @@
       if (activeAudio) {
         activeAudio.pause();
       }
+      stopPreview();
 
       // Lock UI
       generateBtn.disabled = true;
@@ -1087,6 +1200,7 @@
           seekSlider.disabled = false;
           downloadMp3Btn.disabled = false;
 
+          stopPreview();
           activeAudio.play();
           showToast('Loaded Clip', `Now playing: "${track.title}"`);
         });
