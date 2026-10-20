@@ -223,15 +223,15 @@
             </label>
             <div class="relative">
               <select id="voiceSelect" class="w-full text-sm appearance-none bg-surface-900 border border-slate-800 text-slate-100 rounded-xl px-3.5 py-2.5 pr-8 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none cursor-pointer">
-                <option value="alloy" selected>Alloy - Neutral, Balanced, Professional</option>
-                <option value="ash">Ash - Direct, Crisp, Modern</option>
-                <option value="coral">Coral - Warm, Friendly, Welcoming</option>
-                <option value="echo">Echo - Resonant, Smooth, Deep tone</option>
-                <option value="fable">Fable - Expressive, Storyteller, British flavor</option>
-                <option value="onyx">Onyx - Low-pitch, Authoritative, Cinematic</option>
-                <option value="nova">Nova - Bright, Natural, Youthful</option>
-                <option value="sage">Sage - Calm, Thoughtful, Articulate</option>
-                <option value="shimmer">Shimmer - Clear, Vibrant, Uplifting</option>
+                <option value="Joanna" selected>Joanna - Neutral, Balanced, Professional</option>
+                <option value="Matthew">Matthew - Direct, Crisp, Modern</option>
+                <option value="Kimberly">Kimberly - Warm, Friendly, Welcoming</option>
+                <option value="Joey">Joey - Resonant, Smooth, Deep tone</option>
+                <option value="Amy">Amy - Expressive, Storyteller, British flavor</option>
+                <option value="Stephen">Stephen - Low-pitch, Authoritative, Cinematic</option>
+                <option value="Salli">Salli - Bright, Natural, Youthful</option>
+                <option value="Ruth">Ruth - Calm, Thoughtful, Articulate</option>
+                <option value="Ivy">Ivy - Clear, Vibrant, Uplifting</option>
               </select>
               <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 absolute right-3 top-3 pointer-events-none"></i>
             </div>
@@ -245,9 +245,9 @@
               </label>
               <div class="relative">
                 <select id="modelSelect" class="w-full text-xs sm:text-sm appearance-none bg-surface-900 border border-slate-800 text-slate-100 rounded-xl px-3 py-2.5 pr-7 focus:ring-2 focus:ring-brand-500 outline-none cursor-pointer">
-                  <option value="gpt-4o-mini-tts" selected>gpt-4o-mini-tts (Fastest)</option>
-                  <option value="tts-1">tts-1 (Standard)</option>
-                  <option value="tts-1-hd">tts-1-hd (High-Def)</option>
+                  <option value="standard" selected>Standard (Free)</option>
+                  <option value="neural">Neural (Higher quality)</option>
+                  <option value="generative">Generative (Most expressive)</option>
                 </select>
                 <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-3 pointer-events-none"></i>
               </div>
@@ -292,7 +292,7 @@
             <div class="mt-1">
               <div class="flex items-center justify-between mb-1">
                 <label for="customInstructions" class="text-xs text-slate-400">
-                  Instruction Prompt <span class="text-slate-500">(sent to TTS model)</span>:
+                  Instruction Prompt <span class="text-slate-500">(style presets below are not applied by the free engine)</span>:
                 </label>
                 <button id="resetInstructionBtn" type="button" class="text-[11px] text-brand-400 hover:text-brand-300">
                   Reset
@@ -518,19 +518,7 @@
       tech: "Deliver with a crisp, fast-paced, articulate, and modern tone suitable for a concise product or tech architectural walkthrough."
     };
 
-    // Free AWS Polly voices (Puter.js default TTS) mapped to the UI personas
-    const FREE_VOICE_MAP = {
-      alloy: 'Joanna',
-      ash: 'Matthew',
-      coral: 'Kimberly',
-      echo: 'Joey',
-      fable: 'Amy',
-      onyx: 'Stephen',
-      nova: 'Salli',
-      sage: 'Ruth',
-      shimmer: 'Ivy'
-    };
-
+    // Voices are AWS Polly voice IDs (Puter's free TTS engine)
     // Quick Sample Texts
     const SAMPLES = {
       intro: "Welcome to TTS AudioLab by Wayne Scicluna. Convert any text into pristine MP3 audio with instant client-side rendering and nuanced vocal modulation.",
@@ -714,11 +702,11 @@
           if (key === 'meditation') {
             presetSelect.value = 'meditation';
             customInstructions.value = PRESETS.meditation;
-            voiceSelect.value = 'sage';
+            voiceSelect.value = 'Ruth';
           } else if (key === 'trailer') {
             presetSelect.value = 'trailer';
             customInstructions.value = PRESETS.trailer;
-            voiceSelect.value = 'onyx';
+            voiceSelect.value = 'Stephen';
           }
         }
       });
@@ -787,7 +775,7 @@
       // Free engine only: Puter's default AWS Polly via the `standard` engine (no paid models)
       const options = {
         provider: 'aws-polly',
-        voice: FREE_VOICE_MAP[voiceSelect.value] || 'Joanna',
+        voice: voiceSelect.value || 'Joanna',
         engine: 'standard',
         language: 'en-US'
       };
@@ -1055,18 +1043,13 @@
       const instructions = customInstructions.value.trim();
       const isTest = testModeCheck.checked;
 
-      // Build options according to puter.ai.txt2speech specifications
-      // provider must be explicit, otherwise Puter defaults to AWS Polly and rejects OpenAI voice IDs
+      // Free engine: AWS Polly (same provider/voice as Preview so both sound identical)
       const options = {
-        provider: 'openai',
+        provider: 'aws-polly',
         voice: voice,
-        model: model,
-        response_format: 'mp3'
+        engine: model,
+        language: 'en-US'
       };
-
-      if (instructions) {
-        options.instructions = instructions;
-      }
 
       if (isTest) {
         options.test_mode = true;
